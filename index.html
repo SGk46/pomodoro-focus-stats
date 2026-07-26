@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="Pomodoro timer with focus stats, session history, and optional ambient sounds. Free, local-only." />
+    <meta name="theme-color" content="#0f1419" />
+    <title>Pomodoro · Focus Stats</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="css/styles.css" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ccircle cx='50' cy='50' r='42' fill='%23e85d4c'/%3E%3Ctext y='68' x='50' text-anchor='middle' font-size='48'%3E🍅%3C/text%3E%3C/svg%3E" />
+  </head>
+  <body data-mode="work">
+    <div class="bg" aria-hidden="true"></div>
+
+    <div class="app">
+      <header class="top">
+        <div class="brand">
+          <span class="logo" aria-hidden="true">🍅</span>
+          <div>
+            <h1>Pomodoro</h1>
+            <p class="tag">Focus stats · local only</p>
+          </div>
+        </div>
+        <nav class="tabs" role="tablist">
+          <button type="button" class="tab active" data-view="timer" role="tab">Timer</button>
+          <button type="button" class="tab" data-view="stats" role="tab">Stats</button>
+          <button type="button" class="tab" data-view="history" role="tab">History</button>
+          <button type="button" class="tab" data-view="settings" role="tab">Settings</button>
+        </nav>
+      </header>
+
+      <!-- TIMER -->
+      <section id="view-timer" class="view active" role="tabpanel">
+        <div class="mode-pills" id="mode-pills">
+          <button type="button" class="pill active" data-set-mode="work">Focus</button>
+          <button type="button" class="pill" data-set-mode="short">Short break</button>
+          <button type="button" class="pill" data-set-mode="long">Long break</button>
+        </div>
+
+        <div class="timer-wrap">
+          <svg class="ring" viewBox="0 0 200 200" aria-hidden="true">
+            <circle class="ring-track" cx="100" cy="100" r="88" />
+            <circle class="ring-progress" id="ring" cx="100" cy="100" r="88" />
+          </svg>
+          <div class="timer-core">
+            <p class="phase-label" id="phase-label">Focus session</p>
+            <p class="time" id="time-display">25:00</p>
+            <p class="session-meta" id="session-meta">Pomodoro 1 · ready</p>
+          </div>
+        </div>
+
+        <div class="controls">
+          <button type="button" class="btn ghost" id="btn-reset" title="Reset (R)">Reset</button>
+          <button type="button" class="btn primary" id="btn-toggle" title="Start / Pause (Space)">Start</button>
+          <button type="button" class="btn ghost" id="btn-skip" title="Skip (S)">Skip</button>
+        </div>
+
+        <div class="today-bar">
+          <div>
+            <span class="lbl">Today focus</span>
+            <strong id="today-focus">0 min</strong>
+          </div>
+          <div>
+            <span class="lbl">Sessions done</span>
+            <strong id="today-count">0</strong>
+          </div>
+          <div>
+            <span class="lbl">Streak</span>
+            <strong id="streak">0</strong>
+          </div>
+        </div>
+
+        <p class="keys-hint">
+          <kbd>Space</kbd> start/pause · <kbd>R</kbd> reset · <kbd>S</kbd> skip ·
+          <kbd>1</kbd>/<kbd>2</kbd>/<kbd>3</kbd> modes · <kbd>N</kbd> notify permission
+        </p>
+      </section>
+
+      <!-- STATS -->
+      <section id="view-stats" class="view" role="tabpanel" hidden>
+        <div class="stats-grid">
+          <article class="card">
+            <h2>This week</h2>
+            <p class="big-stat"><span id="week-minutes">0</span> <small>focus min</small></p>
+            <p class="muted" id="week-sessions">0 completed sessions</p>
+          </article>
+          <article class="card">
+            <h2>Average / day</h2>
+            <p class="big-stat"><span id="avg-day">0</span> <small>min</small></p>
+            <p class="muted" id="best-day">Best day: —</p>
+          </article>
+        </div>
+        <article class="card chart-card">
+          <div class="card-head">
+            <h2>Daily focus (7 days)</h2>
+            <span class="muted" id="chart-unit">minutes</span>
+          </div>
+          <canvas id="daily-chart" width="640" height="220" aria-label="Daily focus minutes chart"></canvas>
+        </article>
+        <article class="card chart-card">
+          <div class="card-head">
+            <h2>Weekly focus (8 weeks)</h2>
+          </div>
+          <canvas id="weekly-chart" width="640" height="180" aria-label="Weekly focus minutes chart"></canvas>
+        </article>
+      </section>
+
+      <!-- HISTORY -->
+      <section id="view-history" class="view" role="tabpanel" hidden>
+        <div class="card-head row">
+          <h2>Session history</h2>
+          <div class="row-actions">
+            <button type="button" class="btn sm ghost" id="btn-export">Export JSON</button>
+            <button type="button" class="btn sm danger" id="btn-clear-history">Clear</button>
+          </div>
+        </div>
+        <ul class="history-list" id="history-list"></ul>
+        <p class="muted empty" id="history-empty">No sessions yet. Finish a focus timer to see history.</p>
+      </section>
+
+      <!-- SETTINGS -->
+      <section id="view-settings" class="view" role="tabpanel" hidden>
+        <article class="card settings-card">
+          <h2>Durations</h2>
+          <label class="field">
+            <span>Focus (minutes)</span>
+            <input type="number" id="set-work" min="1" max="120" />
+          </label>
+          <label class="field">
+            <span>Short break (minutes)</span>
+            <input type="number" id="set-short" min="1" max="60" />
+          </label>
+          <label class="field">
+            <span>Long break (minutes)</span>
+            <input type="number" id="set-long" min="1" max="60" />
+          </label>
+          <label class="field">
+            <span>Long break every N focus sessions</span>
+            <input type="number" id="set-until-long" min="2" max="12" />
+          </label>
+        </article>
+        <article class="card settings-card">
+          <h2>Sounds &amp; alerts</h2>
+          <label class="toggle">
+            <input type="checkbox" id="set-notify" />
+            <span>Desktop notifications when a phase ends</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="set-chime" />
+            <span>End-of-phase chime (Web Audio)</span>
+          </label>
+          <label class="toggle">
+            <input type="checkbox" id="set-ambient" />
+            <span>Ambient tone while focusing (free Web Audio)</span>
+          </label>
+          <button type="button" class="btn sm ghost" id="btn-notify-perm">Request notification permission</button>
+        </article>
+        <p class="muted settings-foot">
+          All data stays in this browser via <code>localStorage</code>. No accounts, no paid APIs.
+        </p>
+      </section>
+
+      <footer class="foot">
+        Free · Vanilla JS · localStorage · Web Audio · MIT
+      </footer>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+  </body>
+</html>
